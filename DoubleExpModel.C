@@ -8,7 +8,7 @@ Double_t deFunc(Double_t *x, Double_t *p){
 }
 
 /*
-PARAMETERS:
+PARAMETERS of the double exponent model:
 p[0] is the constant term for \lambda_1
 p[1] -> \lambda_1
 p[2] is the constant term for \lambda_2
@@ -16,12 +16,14 @@ p[3] -> \lambda_2
 */
 
 Double_t deModel(std::string filename = ""){
+    //opening the file with fitted spectra
     TFile *spectra = new TFile(filename.c_str(), "READ");
     if(!spectra->IsOpen()){
         std::cerr << "File not opened!" << std::endl;
         return -1;
     }
 
+    //creating the graph and the function for fitting
     TGraph *DE = new TGraph();
     TF1 *deF = new TF1("deF", deFunc, 0, 1000, 4);
     deF->SetParNames("I1", "lambda1", "I2", "lambda2");
@@ -31,12 +33,16 @@ Double_t deModel(std::string filename = ""){
     deF->SetParLimits(2, 0, 1e6);
     deF->SetParLimits(3, 0, 1e6);
    
+    //reading data from the file with fitted spectra
     for(){
         //dostać się do Qh;
     }
 
+    //fitting the graph
     TFitResultPtr fit = DE->Fit(deF, "S");
+        //dodać tekst na wykresach
 
+    //creating the canvas for the graph
     TCanvas *c1 = new TCanvas("c1", "c1", 800, 600);
     DE->SetTitle("DE Model; position [mm]; Q [a.u.]");
     DE->SetMarkerStyle(20);
