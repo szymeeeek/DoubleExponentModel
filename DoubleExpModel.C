@@ -31,6 +31,8 @@ Double_t deModel(std::string directory = "/home/szymon/LHCb/20250428firstMeasCit
         return -1;
     }
 
+    Float_t m = 9.0/35.0;
+    std::cout<<m<<std::endl;
     std::vector <Float_t> mean, erMean, pos, erPos;
     for(Int_t i = 1; i<41; i++){
         std::string hName = Form("Run%i_PHA_LG_0_50.txt", i);
@@ -39,8 +41,12 @@ Double_t deModel(std::string directory = "/home/szymon/LHCb/20250428firstMeasCit
         std::string fName = Form("%s_fit", hName.c_str());
         TF1 *func = hist->GetFunction(fName.c_str());
 
-        mean.push_back(func->GetParameter(1));
-        erMean.push_back(func->GetParError(1));
+        Float_t meanS = func->GetParameter(1);
+        Float_t erMeanS = func->GetParError(1);
+        std::cout<<meanS<<std::endl;
+        mean.push_back(m*meanS);
+        erMean.push_back(m*erMeanS);
+        std::cout<<mean.at(i-1)<<" "<<erMean.at(i-1)<<std::endl;
         pos.push_back(i*10);
         erPos.push_back(0.1);
     }
