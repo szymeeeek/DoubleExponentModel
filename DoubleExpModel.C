@@ -16,10 +16,10 @@ p[3] -> \lambda_2
 */
 
 Double_t singFunc(Double_t *x, Double_t *p){
-    return p[0]*TMath::Exp((-1)*x[0]/p[1]);
+    return p[0]*TMath::Exp((-1)*x[0]/p[1])+p[2];
 }
 
-Double_t Model(std::string directory = "/home/szymon/LHCb/20250428firstMeasCitiroc/BCF20XL2/"){
+Double_t Model(std::string directory = "/home/szymon/LHCb/20250428firstMeasCitiroc/BCF20XL1/"){
     //opening the file with fitted spectra
     std::string specFile = Form("%soutput_HISTOS.root", directory.c_str());
     TFile *spectra = new TFile(specFile.c_str(), "READ");
@@ -65,9 +65,9 @@ Double_t Model(std::string directory = "/home/szymon/LHCb/20250428firstMeasCitir
     deF->SetParLimits(2, 0, 1e2);
     deF->SetParLimits(3, 0, 40);
 
-    TF1 *siF = new TF1("siF", singFunc, 0, 410, 2);
-    siF->SetParNames("I0", "lambda");
-    siF->SetParameters(30, 450);
+    TF1 *siF = new TF1("siF", singFunc, 0, 410, 3);
+    siF->SetParNames("I0", "lambda", "const");
+    siF->SetParameters(30, 450, 30);
 
    
     //reading data from the file with fitted spectra
