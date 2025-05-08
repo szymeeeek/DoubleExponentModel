@@ -35,6 +35,8 @@ Double_t Model(std::string directory = "/home/szymon/LHCb/20250428firstMeasCitir
         return -1;
     }
 
+    Double_t k = 1;
+
     std::vector <Float_t> mean, erMean, pos, erPos;
     for(Int_t i = 1; i<41; i++){
         std::string hName = Form("Run%i_PHA_LG_0_50.txt", i);
@@ -45,9 +47,9 @@ Double_t Model(std::string directory = "/home/szymon/LHCb/20250428firstMeasCitir
 
         Float_t meanS = func->GetParameter(1);
         Float_t erMeanS = func->GetParError(1);
-        std::cout<<meanS<<std::endl;
-        mean.push_back(meanS);
-        erMean.push_back(erMeanS);
+        std::cout<<k*meanS<<std::endl;
+        mean.push_back(k*meanS);
+        erMean.push_back(k*erMeanS);
         pos.push_back(i*10);
         erPos.push_back(0.1);
     }
