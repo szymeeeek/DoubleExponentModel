@@ -20,6 +20,13 @@ Double_t singFunc(Double_t *x, Double_t *p){
     return p[0]*TMath::Exp((-1)*x[0]/p[1])+p[2];
 }
 
+/*
+PARAMETERS of the double exponent model:
+p[0] is the constant term for \lambda
+p[1] -> \lambda
+p[2] - constant
+*/
+
 Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BCF20XL1/Citiroc/"){
     //opening the file with fitted spectra
     std::string specFile = Form("%soutput_HISTOS.root", directory.c_str());
@@ -37,7 +44,10 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     }
 
     std::vector <Float_t> mean, erMean, pos, erPos;
+    
+    //if the measurement was performed with a fixed step, leave the pos vector empty
     pos = {3, 20, 40, 60, 80, 100, 150, 200, 300, 400};
+    Double_t step = 10; //cm
 
     for(Int_t i = 1; i<42; i++){
         std::string hName = Form("Run%i_PHA_LG_0_50.txt", i);
@@ -51,7 +61,9 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
         std::cout<<meanS<<std::endl;
         mean.push_back(meanS);
         erMean.push_back(erMeanS);
-        pos.push_back(i*10);
+        if(pos.empty()){
+            pos.push_back(i*step);
+        }
         erPos.push_back(0.1);
     }
     Int_t n = pos.size();
@@ -138,7 +150,7 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     return 0;
 }
 
-Double_t ModelOsc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BCF20XL1/Scope/"){
+Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWithScopeRep/BCF12XL/20250602"){
     Bool_t debug = kFALSE;
     //opening the output file
     std::string outFilename = Form("%soutput_modelFit.root", directory.c_str());
@@ -151,10 +163,10 @@ Double_t ModelOsc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BC
     std::vector <Float_t> mean, erMean, pos, erPos;
     //----------extracting data from files with fitted spectra----------
     // List of input ROOT files
-    Int_t firstFile = 20;
-    Int_t lastFile = 31;
+    Int_t firstFile = 22;
+    Int_t lastFile = 40;
 
-    pos = {3, 20, 40, 60, 80, 100, 150, 200, 300, 400};
+    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 400}; // Assuming positions in cm
     // Loop over files
     for (Int_t i = firstFile; i <= lastFile; ++i) {
         // Construct file name and histogram name
@@ -166,7 +178,7 @@ Double_t ModelOsc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BC
         }
 
         // Get histogram
-        TH1* hist = dynamic_cast<TH1*>(file->Get("Qh"));
+        TH1D* hist = dynamic_cast<TH1D*>(file->Get("Qh"));
         if (!hist) {
             std::cerr << "Histogram not found in file: " << fileName << std::endl;
             file->Close();
@@ -248,7 +260,7 @@ Double_t ModelOsc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BC
 
     std::string paramsStringDE = Form("#splitline{#splitline{I_{1} = (%.3f +/- %.3f) a.u.}{#lambda_{1} = (%.2f +/- %.2f) cm}}{#splitline{I_{2} = (%.2f +/- %.2f) a.u.}{#lambda_{2} = (%.2f +/- %.2f) cm}}", deF->GetParameter(0), deF->GetParError(0), 
                                             deF->GetParameter(1), deF->GetParError(1), deF->GetParameter(2), deF->GetParError(2), deF->GetParameter(3), deF->GetParError(3));
-    std::string paramsStringSE = Form("#splitline{#splitline{I_{0} = (%.3f +/- %.3f) a.u.}{#lambda = (%.2f +/- %.2f) cm}}{#splitline{const = (%.2f +/- %.2f) a.u.}}", siF->GetParameter(0), siF->GetParError(0), 
+    std::string paramsStringSE = Form("#splitline{#splitline{I_{0} = (%.3f +/- %.3f) a.u.}{#lambda = (%.2f +/- %.2f) cm}}{#splitline{const = (%.2f +/- %.2f) a.u.}{}}", siF->GetParameter(0), siF->GetParError(0), 
                                             siF->GetParameter(1), siF->GetParError(1), siF->GetParameter(2), siF->GetParError(2));
     
     
@@ -292,18 +304,19 @@ Double_t ModelOsc(std::string directory = "/home/szymon/LHCb/20250524testsRep/BC
     SE->SetLineWidth(2);
     SE->Draw("AP");
 
-    f1->SetLineStyle(2);
-    f2->SetLineStyle(2);
+    f1SI->SetLineStyle(2);
+    f2SI->SetLineStyle(2);
     legSE->AddEntry(f1, "single component", "l");
     legSE->AddEntry(f2, "constant", "l");
     legSE->AddEntry(siF, "SE model", "l");
-    f1->Draw("SAME");
-    f2->Draw("SAME");
+    f1SI->Draw("SAME");
+    f2SI->Draw("SAME");
     paramsTextSE->DrawLatex(300, 35, paramsStringSE.c_str());
     legSE->Draw();
 
     c1->Write();
     DE->Write();
+    SE->Write();
 
     return 0;
 }
