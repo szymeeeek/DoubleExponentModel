@@ -2,6 +2,11 @@
 #include <fstream>
 #include <TMath.h>
 
+//changelog
+// 2024-06-10: Added the chi2/ndf calculation for both models.
+
+//This macro provides the functions for fitting the double and sinle exponential models to the data from Citiroc and Oscilloscope.
+//To use the following macro, you need to first process the data with the Citiroc or Oscilloscope analysis macros.
 
 Double_t deFunc(Double_t *x, Double_t *p){
     return p[0]*TMath::Exp((-1)*x[0]/p[1])+p[2]*TMath::Exp((-1)*x[0]/p[3])+p[4];
@@ -83,18 +88,37 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
 
     TF1 *siF = new TF1("siF", singFunc, 0, 410, 3);
     siF->SetParNames("I0", "lambda", "const");
-    siF->SetParameters(30, 450, 30);
-
-   
-    //reading data from the file with fitted spectra
-    // for(){
-    //     //dostać się do Qh;
-    // }
+    siF->SetParameters(16, 45, 0);
+    siF->SetParLimits(0, 0, 1e2);
+    siF->SetParLimits(1, 0, 6e2);
+    siF->SetParLimits(2, 0, 14);
 
     //fitting the graphs
-    TFitResultPtr fit = DE->Fit(deF, "S");
-    TFitResultPtr fitSE = SE->Fit(siF, "S");
+    TFitResultPtr fit = DE->Fit(deF, "R");
+    TFitResultPtr fitSE = SE->Fit(siF, "R");
 
+    Double_t chi2DE = deF->GetChisquare();
+    Int_t ndfDE = deF->GetNDF();
+    Double_t chi2PerNdfDE = (ndfDE != 0) ? chi2DE / ndfDE : 0;
+
+    Double_t chi2SE = siF->GetChisquare();
+    Int_t ndfSE = siF->GetNDF();
+    Double_t chi2PerNdfSE = (ndfSE != 0) ? chi2SE / ndfSE : 0;
+
+    std::cout << "Double Exp: chi2 = " << chi2DE << ", ndf = " << ndfDE << ", chi2/ndf = " << chi2PerNdfDE << std::endl;
+    std::cout << "Single Exp: chi2 = " << chi2SE << ", ndf = " << ndfSE << ", chi2/ndf = " << chi2PerNdfSE << std::endl;
+
+    //---------components for the single exponential model---------
+    // Component 1: [0]*exp(-x/[1])
+    TF1 *f1SI = new TF1("f1", "[0]*exp(-x/[1])", 0, 410);
+    f1SI->SetParameters(siF->GetParameter(0), siF->GetParameter(1));
+    f1SI->SetLineColor(kOcean);
+    // Component 2: constant
+    TF1 *f2SI = new TF1("f2", "[0]", 0, 410);
+    f2SI->SetParameters(siF->GetParameter(2));
+    f2SI->SetLineColor(kMagenta);
+
+    //---------components for the double exponential model---------
     // Component 1: [0]*exp(-x/[1])
     TF1 *f1 = new TF1("f1", "[0]*exp(-x/[1])", 0, 410);
     f1->SetParameters(deF->GetParameter(0), deF->GetParameter(1));
@@ -105,11 +129,39 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     f2->SetParameters(deF->GetParameter(2), deF->GetParameter(3));
     f2->SetLineColor(kMagenta);
 
-    std::string paramsString = Form("#splitline{#splitline{I_{1} = (%.3f +/- %.3f) a.u.}{#lambda_{1} = (%.2f +/- %.2f) cm}}{#splitline{I_{2} = (%.2f +/- %.2f) a.u.}{#lambda_{2} = (%.2f +/- %.2f) cm}}", deF->GetParameter(0), deF->GetParError(0), 
-                                            deF->GetParameter(1), deF->GetParError(1), deF->GetParameter(2), deF->GetParError(2), deF->GetParameter(3), deF->GetParError(3));
-    TLatex *paramsText = new TLatex();
+    // Component 3: constant
+    TF1 *f3 = new TF1("f3", "[0]", 0, 410);
+    f3->SetParameter(0, deF->GetParameter(4));
+    f3->SetLineColor(kRed);
+    f3->SetLineStyle(2);
+    //--------------------------------------------------------------
+
+    std::string paramsStringDE = Form(
+        "#splitline{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
+        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{const. = (%.4f #pm %.4f) a.u.}}}"
+        "\\n#chi^{2}/ndf = %.2f",
+        deF->GetParameter(0), deF->GetParError(0), 
+        deF->GetParameter(1), deF->GetParError(1), 
+        deF->GetParameter(2), deF->GetParError(2), 
+        deF->GetParameter(3), deF->GetParError(3), 
+        deF->GetParameter(4), deF->GetParError(4),
+        chi2PerNdfDE
+    );
+    std::string paramsStringSE = Form(
+        "#splitline{#splitline{I_{0} = (%.2f #pm %.2f) a.u.}{#lambda = (%.2f #pm %.2f) cm}}"
+        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{}}"
+        "\\n#chi^{2}/ndf = %.2f",
+        siF->GetParameter(0), siF->GetParError(0), 
+        siF->GetParameter(1), siF->GetParError(1), 
+        siF->GetParameter(2), siF->GetParError(2),
+        chi2PerNdfSE
+    );
+
+    TLatex *paramsTextDE = new TLatex();
+    TLatex *paramsTextSE = new TLatex();
 
     TLegend *legDE = new TLegend();
+    TLegend *legSE = new TLegend();
 
     //creating the canvas for the graph
     TCanvas *c1 = new TCanvas("c1", "c1", 1600, 600);
@@ -122,17 +174,24 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     DE->SetMarkerColor(kBlue);
     DE->SetLineColor(kBlue);
     DE->SetLineWidth(2);
+    DE->SetMinimum(0);
+    DE->SetMaximum(50);
     DE->Draw("AP");
 
     f1->SetLineStyle(2);
     f2->SetLineStyle(2);
     legDE->AddEntry(f1, "long component", "l");
     legDE->AddEntry(f2, "short component", "l");
+    legDE->AddEntry(f3, "constant", "l");
     legDE->AddEntry(deF, "DE model", "l");
 
     f1->Draw("SAME");
     f2->Draw("SAME");
-    paramsText->DrawLatex(300, 35, paramsString.c_str());
+    f3->Draw("SAME");
+    paramsTextDE->SetNDC(kTRUE);
+    paramsTextDE->SetTextSize(0.04);
+    paramsTextSE->SetTextSize(0.04);
+    paramsTextDE->DrawLatex(0.5, 0.75, paramsStringDE.c_str());
     legDE->Draw();
 
     c1->cd(2);
@@ -142,10 +201,26 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     SE->SetMarkerColor(kBlue);
     SE->SetLineColor(kBlue);
     SE->SetLineWidth(2);
+    SE->SetMinimum(0);
+    SE->SetMaximum(50);
     SE->Draw("AP");
 
+    f1SI->SetLineStyle(2);
+    f2SI->SetLineStyle(2);
+    legSE->AddEntry(f1, "single component", "l");
+    legSE->AddEntry(f2, "constant", "l");
+    legSE->AddEntry(siF, "SE model", "l");
+    f1SI->Draw("SAME");
+    f2SI->Draw("SAME");
+    paramsTextSE->SetNDC(kTRUE);
+    paramsTextSE->DrawLatex(0.5, 0.75, paramsStringSE.c_str());
+    legSE->Draw();
+
+    c1->Update();
+    output->cd();
     c1->Write();
     DE->Write();
+    SE->Write();
 
     return 0;
 }
@@ -166,7 +241,7 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     Int_t firstFile = 22;
     Int_t lastFile = 40;
 
-    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 400}; // Assuming positions in cm
+    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 395}; // Assuming positions in cm
     // Loop over files
     for (Int_t i = firstFile; i <= lastFile; ++i) {
         // Construct file name and histogram name
@@ -224,11 +299,25 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
     TF1 *siF = new TF1("siF", singFunc, 0, 410, 3);
     siF->SetParNames("I0", "lambda", "const");
-    siF->SetParameters(30, 450, 30);
+    siF->SetParameters(16, 45, 0);
+    siF->SetParLimits(0, 0, 1e2);
+    siF->SetParLimits(1, 0, 6e2);
+    siF->SetParLimits(2, 0, 14);
 
     //fitting the graphs
-    TFitResultPtr fit = DE->Fit(deF, "S");
-    TFitResultPtr fitSE = SE->Fit(siF, "S");
+    TFitResultPtr fit = DE->Fit(deF, "R");
+    TFitResultPtr fitSE = SE->Fit(siF, "R");
+
+    Double_t chi2DE = deF->GetChisquare();
+    Int_t ndfDE = deF->GetNDF();
+    Double_t chi2PerNdfDE = (ndfDE != 0) ? chi2DE / ndfDE : 0;
+
+    Double_t chi2SE = siF->GetChisquare();
+    Int_t ndfSE = siF->GetNDF();
+    Double_t chi2PerNdfSE = (ndfSE != 0) ? chi2SE / ndfSE : 0;
+
+    std::cout << "Double Exp: chi2 = " << chi2DE << ", ndf = " << ndfDE << ", chi2/ndf = " << chi2PerNdfDE << std::endl;
+    std::cout << "Single Exp: chi2 = " << chi2SE << ", ndf = " << ndfSE << ", chi2/ndf = " << chi2PerNdfSE << std::endl;
 
     //---------components for the single exponential model---------
     // Component 1: [0]*exp(-x/[1])
@@ -258,11 +347,26 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     f3->SetLineStyle(2);
     //--------------------------------------------------------------
 
-    std::string paramsStringDE = Form("#splitline{#splitline{I_{1} = (%.3f +/- %.3f) a.u.}{#lambda_{1} = (%.2f +/- %.2f) cm}}{#splitline{I_{2} = (%.2f +/- %.2f) a.u.}{#lambda_{2} = (%.2f +/- %.2f) cm}}", deF->GetParameter(0), deF->GetParError(0), 
-                                            deF->GetParameter(1), deF->GetParError(1), deF->GetParameter(2), deF->GetParError(2), deF->GetParameter(3), deF->GetParError(3));
-    std::string paramsStringSE = Form("#splitline{#splitline{I_{0} = (%.3f +/- %.3f) a.u.}{#lambda = (%.2f +/- %.2f) cm}}{#splitline{const = (%.2f +/- %.2f) a.u.}{}}", siF->GetParameter(0), siF->GetParError(0), 
-                                            siF->GetParameter(1), siF->GetParError(1), siF->GetParameter(2), siF->GetParError(2));
-    
+    std::string paramsStringDE = Form(
+        "#splitline{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
+        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{const. = (%.4f #pm %.4f) a.u.}}}"
+        "\\n#chi^{2}/ndf = %.2f",
+        deF->GetParameter(0), deF->GetParError(0), 
+        deF->GetParameter(1), deF->GetParError(1), 
+        deF->GetParameter(2), deF->GetParError(2), 
+        deF->GetParameter(3), deF->GetParError(3), 
+        deF->GetParameter(4), deF->GetParError(4),
+        chi2PerNdfDE
+    );
+    std::string paramsStringSE = Form(
+        "#splitline{#splitline{I_{0} = (%.2f #pm %.2f) a.u.}{#lambda = (%.2f #pm %.2f) cm}}"
+        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{}}"
+        "\\n#chi^{2}/ndf = %.2f",
+        siF->GetParameter(0), siF->GetParError(0), 
+        siF->GetParameter(1), siF->GetParError(1), 
+        siF->GetParameter(2), siF->GetParError(2),
+        chi2PerNdfSE
+    );
     
     TLatex *paramsTextDE = new TLatex();
     TLatex *paramsTextSE = new TLatex();
@@ -281,6 +385,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     DE->SetMarkerColor(kBlue);
     DE->SetLineColor(kBlue);
     DE->SetLineWidth(2);
+    DE->SetMinimum(0);
+    DE->SetMaximum(50);
     DE->Draw("AP");
 
     f1->SetLineStyle(2);
@@ -292,7 +398,11 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
     f1->Draw("SAME");
     f2->Draw("SAME");
-    paramsTextDE->DrawLatex(300, 35, paramsStringDE.c_str());
+    f3->Draw("SAME");
+    paramsTextDE->SetNDC(kTRUE);
+    paramsTextDE->SetTextSize(0.04);
+    paramsTextSE->SetTextSize(0.04);
+    paramsTextDE->DrawLatex(0.5, 0.75, paramsStringDE.c_str());
     legDE->Draw();
 
     c1->cd(2);
@@ -302,6 +412,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     SE->SetMarkerColor(kBlue);
     SE->SetLineColor(kBlue);
     SE->SetLineWidth(2);
+    SE->SetMinimum(0);
+    SE->SetMaximum(50);
     SE->Draw("AP");
 
     f1SI->SetLineStyle(2);
@@ -311,9 +423,12 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     legSE->AddEntry(siF, "SE model", "l");
     f1SI->Draw("SAME");
     f2SI->Draw("SAME");
-    paramsTextSE->DrawLatex(300, 35, paramsStringSE.c_str());
+    paramsTextSE->SetNDC(kTRUE);
+    paramsTextSE->DrawLatex(0.5, 0.75, paramsStringSE.c_str());
     legSE->Draw();
 
+    c1->Update();
+    output->cd();
     c1->Write();
     DE->Write();
     SE->Write();
