@@ -239,9 +239,9 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     //----------extracting data from files with fitted spectra----------
     // List of input ROOT files
     Int_t firstFile = 22;
-    Int_t lastFile = 40;
+    Int_t lastFile = 33;
 
-    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 395}; // Assuming positions in cm
+    pos = {10, 20, 35, 50, 75, 100, 150, 200, 250, 300, 350, 400}; // Assuming positions in cm
     // Loop over files
     for (Int_t i = firstFile; i <= lastFile; ++i) {
         // Construct file name and histogram name
@@ -348,9 +348,9 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     //--------------------------------------------------------------
 
     std::string paramsStringDE = Form(
-        "#splitline{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
-        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{const. = (%.4f #pm %.4f) a.u.}}}"
-        "\\n#chi^{2}/ndf = %.2f",
+        "#splitline"
+        "{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
+        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f}}}}",
         deF->GetParameter(0), deF->GetParError(0), 
         deF->GetParameter(1), deF->GetParError(1), 
         deF->GetParameter(2), deF->GetParError(2), 
@@ -360,8 +360,7 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     );
     std::string paramsStringSE = Form(
         "#splitline{#splitline{I_{0} = (%.2f #pm %.2f) a.u.}{#lambda = (%.2f #pm %.2f) cm}}"
-        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{}}"
-        "\\n#chi^{2}/ndf = %.2f",
+        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f}}",
         siF->GetParameter(0), siF->GetParError(0), 
         siF->GetParameter(1), siF->GetParError(1), 
         siF->GetParameter(2), siF->GetParError(2),
