@@ -265,8 +265,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
         // Extract fit parameters
         mean.push_back(func->GetParameter(1));    
-        erMean.push_back(func->GetParError(1));   
-        erPos.push_back(0.1); // Assuming constant error for position
+        erMean.push_back(func->GetParameter(2));   
+        erPos.push_back(0.5); // Assuming constant error for position
         if(pos.empty()) {
             pos.push_back(i * 10); // Assuming position is 10*i for each file
         }
