@@ -239,9 +239,9 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     //----------extracting data from files with fitted spectra----------
     // List of input ROOT files
     Int_t firstFile = 22;
-    Int_t lastFile = 33;
+    Int_t lastFile = 40;
 
-    pos = {10, 20, 35, 50, 75, 100, 150, 200, 250, 300, 350, 400}; // Assuming positions in cm
+    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 400}; // Assuming positions in cm
     // Loop over files
     for (Int_t i = firstFile; i <= lastFile; ++i) {
         // Construct file name and histogram name
@@ -290,16 +290,16 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
     TF1 *deF = new TF1("deF", deFunc, 0, 410, 5);
     deF->SetParNames("I1", "lambda1", "I2", "lambda2");
-    deF->SetParameters(35, 450, 3, 40, 30);
+    deF->SetParameters(35, 450, 3, 30, 3);
     deF->SetParLimits(0, 0, 1e2);
     deF->SetParLimits(1, 0, 6e3);
-    deF->SetParLimits(2, 0, 1e2);
+    deF->SetParLimits(2, 0, 1e3);
     deF->SetParLimits(3, 0, 100);
     deF->SetParLimits(4, 0, 30);
 
     TF1 *siF = new TF1("siF", singFunc, 0, 410, 3);
     siF->SetParNames("I0", "lambda", "const");
-    siF->SetParameters(16, 45, 0);
+    siF->SetParameters(16, 450, 0);
     siF->SetParLimits(0, 0, 1e2);
     siF->SetParLimits(1, 0, 6e2);
     siF->SetParLimits(2, 0, 14);
@@ -350,21 +350,21 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     std::string paramsStringDE = Form(
         "#splitline"
         "{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
-        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f}}}}",
+        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f/%.2i}}}}",
         deF->GetParameter(0), deF->GetParError(0), 
         deF->GetParameter(1), deF->GetParError(1), 
         deF->GetParameter(2), deF->GetParError(2), 
         deF->GetParameter(3), deF->GetParError(3), 
         deF->GetParameter(4), deF->GetParError(4),
-        chi2PerNdfDE
+        chi2DE, ndfDE
     );
     std::string paramsStringSE = Form(
         "#splitline{#splitline{I_{0} = (%.2f #pm %.2f) a.u.}{#lambda = (%.2f #pm %.2f) cm}}"
-        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f}}",
+        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f/%.2i}}",
         siF->GetParameter(0), siF->GetParError(0), 
         siF->GetParameter(1), siF->GetParError(1), 
         siF->GetParameter(2), siF->GetParError(2),
-        chi2PerNdfSE
+        chi2SE, ndfSE
     );
     
     TLatex *paramsTextDE = new TLatex();
