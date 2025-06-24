@@ -51,7 +51,7 @@ Double_t ModelCitiroc(std::string directory = "/home/szymon/LHCb/20250524testsRe
     std::vector <Float_t> mean, erMean, pos, erPos;
     
     //if the measurement was performed with a fixed step, leave the pos vector empty
-    pos = {3, 20, 40, 60, 80, 100, 150, 200, 300, 400};
+    pos = {10, 20, 40, 60, 80, 100, 150, 200, 300, 400};
     Double_t step = 10; //cm
 
     for(Int_t i = 1; i<42; i++){
@@ -239,11 +239,11 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     //----------extracting data from files with fitted spectra----------
     // List of input ROOT files
     Int_t firstFile = 22;
-    Int_t lastFile = 40;
+    Int_t lastFile = 38;
 
-    pos = {10, 20, 35, 50, 75, 100, 150, 200, 300, 400}; // Assuming positions in cm
+    pos = {10, 11, 12, 20, 50, 100, 200, 300, 400}; // positions in cm
     // Loop over files
-    for (Int_t i = firstFile; i <= lastFile; ++i) {
+    for (Int_t i = firstFile; i <= lastFile; i=i+2) {
         // Construct file name and histogram name
         std::string fileName = Form("%s_scope_%i_HISTOS.root", directory.c_str(), i);
         TFile* file = TFile::Open(fileName.c_str(), "READ");
@@ -265,8 +265,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
         // Extract fit parameters
         mean.push_back(func->GetParameter(1));    
-        erMean.push_back(func->GetParError(1));   
-        erPos.push_back(0.1); // Assuming constant error for position
+        erMean.push_back(func->GetParameter(2));   
+        erPos.push_back(0.5); // Assuming constant error for position
         if(pos.empty()) {
             pos.push_back(i * 10); // Assuming position is 10*i for each file
         }
@@ -288,18 +288,18 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     TGraphErrors *DE = new TGraphErrors(n, pos.data(), mean.data(), erPos.data(), erMean.data());
     TGraphErrors *SE = new TGraphErrors(*DE);
 
-    TF1 *deF = new TF1("deF", deFunc, 0, 410, 5);
+    TF1 *deF = new TF1("deF", deFunc, 15, 410, 5);
     deF->SetParNames("I1", "lambda1", "I2", "lambda2");
-    deF->SetParameters(35, 450, 3, 30, 3);
+    deF->SetParameters(15, 800, 5, 38, 0);
     deF->SetParLimits(0, 0, 1e2);
     deF->SetParLimits(1, 0, 6e3);
     deF->SetParLimits(2, 0, 1e3);
     deF->SetParLimits(3, 0, 100);
-    deF->SetParLimits(4, 0, 30);
+    deF->SetParLimits(4, 0, 1);
 
-    TF1 *siF = new TF1("siF", singFunc, 0, 410, 3);
+    TF1 *siF = new TF1("siF", singFunc, 15, 410, 3);
     siF->SetParNames("I0", "lambda", "const");
-    siF->SetParameters(16, 450, 0);
+    siF->SetParameters(16, 800, 0);
     siF->SetParLimits(0, 0, 1e2);
     siF->SetParLimits(1, 0, 6e2);
     siF->SetParLimits(2, 0, 14);
@@ -349,8 +349,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
 
     std::string paramsStringDE = Form(
         "#splitline"
-        "{#splitline{I_{1} = (%.2f #pm %.2f) a.u.}{#lambda_{1} = (%.1f #pm %.1f) cm}}"
-        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.2f #pm %.2f) cm}{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f/%.2i}}}}",
+        "{#splitline{I_{1} = (%.1f #pm %.1f) a.u.}{#lambda_{1} = (%.0f #pm %.0f) cm}}"
+        "{#splitline{I_{2} = (%.1f #pm %.1f) a.u.}{#splitline{#lambda_{2} = (%.0f #pm %.0f) cm}{#splitline{const. = (%.2f #pm %.2f) a.u.}{#chi^{2}/ndf = %.2f/%i}}}}",
         deF->GetParameter(0), deF->GetParError(0), 
         deF->GetParameter(1), deF->GetParError(1), 
         deF->GetParameter(2), deF->GetParError(2), 
@@ -359,8 +359,8 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
         chi2DE, ndfDE
     );
     std::string paramsStringSE = Form(
-        "#splitline{#splitline{I_{0} = (%.2f #pm %.2f) a.u.}{#lambda = (%.2f #pm %.2f) cm}}"
-        "{#splitline{const. = (%.4f #pm %.4f) a.u.}{#chi^{2}/ndf = %.2f/%.2i}}",
+        "#splitline{#splitline{I_{0} = (%.1f #pm %.1f) a.u.}{#lambda = (%.0f #pm %.0f) cm}}"
+        "{#splitline{const. = (%.1f #pm %.1f) a.u.}{#chi^{2}/ndf = %.2f/%i}}",
         siF->GetParameter(0), siF->GetParError(0), 
         siF->GetParameter(1), siF->GetParError(1), 
         siF->GetParameter(2), siF->GetParError(2),
@@ -389,7 +389,11 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     DE->Draw("AP");
 
     f1->SetLineStyle(2);
+    f1->SetLineColor(kBlue);
     f2->SetLineStyle(2);
+    f2->SetLineColor(kMagenta);
+    f3->SetLineStyle(2);
+    f3->SetLineColor(kRed);
     legDE->AddEntry(f1, "long component", "l");
     legDE->AddEntry(f2, "short component", "l");
     legDE->AddEntry(f3, "constant", "l");
@@ -416,9 +420,11 @@ Double_t ModelOsc(std::string directory = "/scratch3/lhcb/data/20250601testsWith
     SE->Draw("AP");
 
     f1SI->SetLineStyle(2);
+    f1SI->SetLineColor(kBlue);
     f2SI->SetLineStyle(2);
-    legSE->AddEntry(f1, "single component", "l");
-    legSE->AddEntry(f2, "constant", "l");
+    f2SI->SetLineColor(kRed);
+    legSE->AddEntry(f1SI, "single component", "l");
+    legSE->AddEntry(f2SI, "constant", "l");
     legSE->AddEntry(siF, "SE model", "l");
     f1SI->Draw("SAME");
     f2SI->Draw("SAME");
